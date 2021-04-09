@@ -1,0 +1,51 @@
+proc up_cell {cell} {
+if {[sizeof [get_cells -quiet $cell]] > 0} {
+set cell [get_property [get_cells -quiet $cell] ref_lib_cell_name]
+}
+if {[sizeof [get_cells -quiet -of [get_pins -quiet $cell]]] > 0} {
+set cell [get_property [get_cells -quiet -of [get_pins $cell]] ref_lib_cell_name]
+}
+if {[dbGet [dbGet head.libCells.name -p1 $cell].dontUse]} {
+puts "WARN: The given libCell is dontUse, Please check on the next drive strength"
+}
+regexp {(\S+D)(\d+)(BWP\S+)} $cell match log str tail
+while {$str < 100} {
+set str [expr $str+1]
+lappend ref $log
+lappend ref $str
+lappend ref $tail
+set new_ref [join $ref {}]
+if {[sizeof [get_lib_cells -quiet $new_ref]]} {
+return $new_ref
+unset ref
+break
+}
+unset ref
+}
+}
+
+proc down_cell {cell} {
+if {[sizeof [get_cells -quiet $cell]] > 0} {
+set cell [get_property [get_cells -quiet $cell] ref_lib_cell_name]
+}
+if {[sizeof [get_cells -quiet -of [get_pins -quiet $cell]]] > 0} {
+set cell [get_property [get_cells -quiet -of [get_pins $cell]] ref_lib_cell_name]
+}
+if {[dbGet [dbGet head.libCells.name -p1 $cell].dontUse]} {
+puts "WARN: The given libCell is dontUse, Please check on the next drive strength"
+}
+regexp {(\S+D)(\d+)(BWP\S+)} $cell match log str tail
+while {$str > 0} {
+set str [expr $str-1]
+lappend ref $log
+lappend ref $str
+lappend ref $tail
+set new_ref [join $ref {}]
+if {[sizeof [get_lib_cells -quiet $new_ref]]} {
+return $new_ref
+unset ref
+break
+}
+unset ref
+}
+}
