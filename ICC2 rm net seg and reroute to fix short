@@ -1,0 +1,30 @@
+if {[regexp "Short" [list_drc_error_types]]} {
+      foreach_in_collection x [get_drc_errors -type Short] {
+         # get the net and layer information for the short violation
+         set a [collection_to_list [get_attribute [get_drc_errors -error_id [get_attr $x object_id]] nets] -no_braces]
+         set l [get_attribute [get_drc_errors -error_id [get_object_name $x]] layer_names]
+         set net1 [lindex [lindex $a 0] 1]
+         set net2 [lindex [lindex $a 1] 1]
+         echo " Short layer $l "
+         echo " Net1 is $net1 "
+         echo " Net2 is $net2 "
+
+         # get the net shapes for the shorted nets on the short layer
+         set short_net1_shapes [get_net_shapes -of_objects [get_nets $net1] -filter "layer==$l"]
+         set short_net2_shapes [get_net_shapes -of_objects [get_nets $net2] -filter "layer==$l"]
+         #query_objects $short_net1_shapes
+         #query_objects $short_net2_shapes
+
+         # keep only the signal net shapes in the collection
+         set rem_net1_signal_short [get_net_shapes $short_net1_shapes -filter "net_type==Signal"]
+         set rem_net2_signal_short [get_net_shapes $short_net2_shapes -filter "net_type==Signal"]
+         
+         # remove the net shapes from the design
+         echo "Removing net1 shapes"
+         remove_net_shape [get_net_shapes $rem_net1_signal_short]
+         echo "Removing net2 shapes"
+         remove_net_shape [get_net_shapes $rem_net2_signal_short]
+      }
+   }
+   
+   # run the route_zrt_eco command to perform ECO routing
