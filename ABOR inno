@@ -1,0 +1,51 @@
+#set list_net_to_buffer { \
+#  net1 \
+#  net2 \
+#  net3 \
+#}
+
+proc getNetLength { name } {
+     set net [dbGetNetByName $name]
+     if { $net == 0x0 } { return "*" }
+     return [dbu2uu [expr [dbNetWireLenX $net ] + [dbNetWireLenY $net ]]]
+}
+ 
+
+proc ecoAddRepeaterChain { net maxdist cell } {
+  setEcoMode -batchMode true
+  if {[dbGet [dbGetNetByName $net].numTerms] == 2} {
+   set len [getNetLength $net]
+   puts "$net $len"
+   while {$len > $maxdist} {
+    Puts "Remaining lenght: $len   relativeDistToSink: [expr 500.0/$len]"
+    Puts "ecoAddRepeater -net $net -cell $cell -relativeDistToSink [expr 500.0/$len]"
+    set result [ ecoAddRepeater -net $net -cell $cell -relativeDistToSink [expr $maxdist/$len] ]
+    set newInstName [lindex $result 0]
+    selectInst $newInstName
+    set len [getNetLength $net]
+   }
+
+   # Place last buffer nearby the driver
+   if {$len > 40.0} {
+    Puts "Remaining lenght >10: $len   relativeDistToSink: [expr 1-(10.0/$len)]"
+    Puts "ecoAddRepeater -net $net -cell $cell -relativeDistToSink [expr 1-(10.0/$len)]"
+    set result [ ecoAddRepeater -net $net -cell $cell -relativeDistToSink [expr 1-(10.0/$len)] ]
+    set newInstName [lindex $result 0]
+    selectInst $newInstName
+   }
+   select_obj [dbGet selected.instTerms.net]
+  } else {
+    Puts "Warning: cannot create chain because net has more than one endpoint"
+  }
+}
+deselectAll
+setEcoMode -batchMode true
+foreach net $list_net_to_buffer {
+  set maxdist 120.0
+setEcoMode -honorDontUse false
+  set cell "BUF_NAME"
+  Puts "ecoAddRepeaterChain $net $maxdist $cell"
+  ecoAddRepeaterChain $net $maxdist $cell
+setEcoMode -honorDontUse true
+}
+setEcoMode -batchMode false
