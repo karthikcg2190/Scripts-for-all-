@@ -1,0 +1,33 @@
+set EP < EP for which you want to pull the clock > 
+set clone "cell to which you want to connect the EP"
+
+###clone
+set New_clone_cell ${clone_cell}_clone
+set new_x [dbGet [dbGetInstByName $clone_cell].pt_x]
+set new_y [dbGet [dbGetInstByName $clone_cell].pt_y]
+set New_CC_ref [get_attribute [get_cells $clone_cell ] ref_name]
+
+##create clone cell
+addInst -cell $New_CC_ref -inst $New_clone_cell -loc $new_x $new_y
+
+### connecting all same input pins of new cell
+set In_pins [get_object_name [get_pins -of [get_cells $clone_cell] -filter "direction == in" ]]
+foreach_in_collection a [get_pins $In_pins ] {
+        attachTerm [get_object_name [get_cells $New_clone_cell ]] [get_attribute [get_pins $In_pins ] name ] [get_object_name [get_nets -of [get_pins $In_pins ]]]
+        }
+
+### create new net
+set EP_Net [get_object_name [get_nets -of $EP]]
+set EP_cell_name [get_object_name [get_cells -of [get_pins $EP] ]]
+set EP_Pin [get_attribute [get_pins $EP] name]
+set EP_Net_clone ${EP_Net}_clone_Man_net
+addNet $EP_Net_clone
+### disconnecting EP
+detachTerm $EP_cell_name $EP_Pin $EP_Net
+
+##  connect new_net to EP and OUTput of the cloned cell
+set Out_pins [get_object_name [get_pins -of [get_cells $New_clone_cell] -filter "direction == out" ]]
+attachTerm [get_object_name [get_cells $EP_cell_name ]] [get_attribute [get_pins $EP] name ]  $EP_Net_clone
+attachTerm [get_object_name [get_cells $New_clone_cell  ]] [get_attribute [get_pins $Out_pins] name]  $EP_Net_clone
+
+
